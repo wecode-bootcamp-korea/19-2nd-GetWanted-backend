@@ -26,7 +26,7 @@
 ## ✏️ Blogs
 - 원재연 : https://velog.io/@dnjs0718
 - 정재유 : https://velog.io/@deonii
-- 이병재 : 
+- 이병재 : https://velog.io/@redlemon
 
 ## ✏️ References
 - 이 프로젝트는 Wanted를 참고하여 학습용으로 작업 되었습니다.
