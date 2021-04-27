@@ -23,10 +23,12 @@
 - <img alt="Slack" src="https://img.shields.io/badge/Slack-4A154B?style=for-the-badge&logo=slack&logoColor=white" />
 - <img alt="AWS" src="https://img.shields.io/badge/AWS-%23FF9900.svg?&style=for-the-badge&logo=amazon-aws&logoColor=white"/>
 - <img alt="Visual Studio Code" src="https://img.shields.io/badge/VisualStudioCode-0078d7.svg?&style=for-the-badge&logo=visual-studio-code&logoColor=white"/>
+- <img alt="Vim" src="https://img.shields.io/badge/VIM-%2311AB00.svg?&style=for-the-badge&logo=vim&logoColor=white"/>
+- <img alt="PyCharm" src="https://img.shields.io/badge/PyCharm-000000.svg?&style=for-the-badge&logo=PyCharm&logoColor=white"/>
 ## ✏️ Blogs
 - 원재연 : https://velog.io/@dnjs0718
 - 정재유 : https://velog.io/@deonii
-- 이병재 : 
+- 이병재 : https://velog.io/@redlemon
 
 ## ✏️ References
 - 이 프로젝트는 Wanted를 참고하여 학습용으로 작업 되었습니다.
