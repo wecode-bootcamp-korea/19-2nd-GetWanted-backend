@@ -1,7 +1,8 @@
 from django.urls import path
 
-from .views import NotificationlistView
+from .views import NotificationView,TagView
 
 urlpatterns = [
-    path('',NotificationlistView.as_view())
+    path('',NotificationView.as_view()),
+    path('/tag',TagView.as_view())
 ]
