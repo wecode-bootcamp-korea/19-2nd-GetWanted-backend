@@ -1,10 +1,9 @@
 import json
 
-from django.views          import View
-from django.http           import JsonResponse
-from django.core.paginator import Paginator
+from django.views     import View
+from django.http      import JsonResponse
 
-from .models               import Image, Notification, Tag
+from .models          import Notification,Tag
 
 class NotificationView(View):
     def get(self,request):
@@ -39,3 +38,28 @@ class TagView(View):
         } for tag in tags]
 
         return JsonResponse({'tag_list': tag_list}, status=200)
+
+class NotificationDetailView(View):
+    def get(self,request,notification_id):
+        try:
+            notification    = Notification.objects.select_related('company').prefetch_related('image_set','tag').get(id=notification_id)
+            notification_detail = [{
+                'notification_id' : notification.id,
+                'title'           : notification.title,
+                'description'     : notification.description,
+                'image_list'      : [{'id'        : image.id,
+                                      'image_url' : image.image_url
+                                     } for image in notification.image_set.all()],
+                'tag_list'        : [{'id'   : tag.id,
+                                      'name' : tag.name
+                                     } for tag in notification.tag.all()],
+                'company_name'    : notification.company.name,
+                'company_address' : notification.company.address,
+                'company_area'    : notification.company.address.split()[0],
+                'latitude'        : notification.company.latitude,
+                'longitude'       : notification.company.longitude 
+                }]
+            return JsonResponse({'NOTIFICATION_DETAIL' : notification_detail}, status=200)
+
+        except Notification.DoesNotExist:
+            return JsonResponse({'MESSAGE' : 'NOTIFICATION_DOES_NOT_EXIST'},status=404)
