@@ -10,12 +10,13 @@ class Resume(models.Model):
         db_table = 'resumes'
 
 class Career(models.Model):
-    is_working   = models.BooleanField(default=0)
-    period       = models.DateField()
-    company_name = models.CharField(max_length=45)
-    department   = models.CharField(max_length=45)
-    description  = models.TextField()
-    resume       = models.ForeignKey('Resume', on_delete=models.CASCADE)
+    is_working    = models.BooleanField(default=0)
+    start_working = models.DateField()
+    end_working   = models.DateField()
+    company_name  = models.CharField(max_length=45)
+    department    = models.CharField(max_length=45)
+    description   = models.TextField()
+    resume        = models.ForeignKey('Resume', on_delete=models.CASCADE)
     class Meta:
         db_table = 'careers'
 
