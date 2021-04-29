@@ -4,6 +4,7 @@ class User(models.Model):
     name         = models.CharField(max_length=45)
     phonenumber  = models.CharField(max_length=45)
     password     = models.CharField(max_length=500)
+    is_social    = models.BooleanField(default=0)
     email        = models.EmailField()
     position     = models.ForeignKey('Position',on_delete=models.PROTECT)
     notification = models.ManyToManyField('companies.Notification', through='ApplyList')
