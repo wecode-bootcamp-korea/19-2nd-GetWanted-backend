@@ -7,8 +7,8 @@ from my_settings  import algorithm,SECRET_KEY
 def login_required(func):
     def decorator(self, request, *args, **kwargs):
         try:
-            access_token = request.headers['access_token']
-            user         = jwt.decode(access_token, SECRET_KEY, algorithm = algorithm)
+            access_token = request.headers['Authorization']
+            user         = jwt.decode(access_token, SECRET_KEY, algorithms = algorithm)
             request.user = User.objects.get(id=user['user_id'])
 
             return func(self, request, *args, **kwargs)
