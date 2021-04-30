@@ -1,10 +1,13 @@
+import jwt
 import json
 import bcrypt
 
 from django.test import TestCase
 from django.test import Client
 
-from users.models import User, Position
+from companies.models import Company, Notification
+from users.models import User, Position, ApplyList
+from my_settings  import SECRET_KEY, algorithm
 
 
 class SignUoTest(TestCase):
@@ -234,3 +237,142 @@ class SignInCheckTest(TestCase):
                     'MESSAGE': 'KEY_ERROR'
                 }
             )
+
+class ApplyviewTest(TestCase):
+
+    def setUp(self):
+        client = Client()
+        Position.objects.create(id=1, name='백엔드')
+        User.objects.create(
+                id = 1,
+                name = '정재유',
+                email = 'fishingman99@naver.com',
+                password = '1q2w3e4r',
+                phonenumber = '010-4444-5555',
+                position_id = 1)
+
+        Company.objects.create(
+                id = 1, 
+                name = '이런회사', 
+                address = '서울', 
+                latitude = 124, 
+                longitude = 124
+                )
+
+        Notification.objects.create(
+                id = 1,
+                title = '이런공고',
+                description = '많이 지원바람', 
+                company_id = 1)
+
+        Notification.objects.create(
+                id = 5,
+                title = '이런공고입니다',
+                description = '많이 지원바람니다',
+                company_id = 1)
+
+        ApplyList.objects.create(user_id=1, notification_id=5)
+
+        self.access_token = jwt.encode({'user_id': 1}, SECRET_KEY, algorithm = algorithm)
+
+
+    def tearDown(self):
+        User.objects.all().delete()
+        Notification.objects.all().delete()
+        Company.objects.all().delete()
+        ApplyList.objects.all().delete()
+
+    def test_apply_check_success(self):
+        client = Client()
+        headers = { 'HTTP_Authorization' : self.access_token }
+        response = client.get('/apply?notification=1', content_type='application/json', **headers)
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_apply_fail_invalid_notification_id(self):
+        client = Client()
+        headers = { 'HTTP_Authorization' : self.access_token }
+        response = client.get('/apply?notification=2', content_type='application/json', **headers)
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json(),
+                {
+                    'MESSAGE': 'INVALID_NOTIFICATION_ID'
+                }
+            )
+
+    def test_apply_fail_already_apply(self):
+        client = Client()
+        headers = { 'HTTP_Authorization' : self.access_token }
+        response = client.get('/apply?notification=5', content_type='application/json', **headers)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(),
+                {
+                    'MESSAGE': 'ALREADY_APPLY'
+                }
+            )
+
+    def test_apply_fail_keyerror(self):
+        client = Client()
+        headers = { 'HTTP_Authorization' : self.access_token }
+        response = client.get('/apply?notificatio=1', content_type='application/json', **headers)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(),
+                {
+                    'MESSAGE': 'KEY_ERROR'
+                }
+            )
+
+    def test_apply_invalide_token(self):
+        client = Client()
+        headers = { 'HTTP_Authorization' : self.access_token+'11' }
+        response = client.get('/apply?notification=1', content_type='application/json', **headers)
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json(),
+                {
+                    'MESSAGE': 'INVALID_TOKEN'
+                }
+            )
+
+    def test_apply_invalide_login(self):
+        client = Client()
+        headers = { 'HTTP_Authorizate' : self.access_token }
+        response = client.get('/apply?notification=1', content_type='application/json', **headers)
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json(),
+                {
+                    'MESSAGE': 'INVALID_LOGIN'
+                }
+            )
+
+    def test_apply_value_error(self):
+        client = Client()
+        headers = { 'HTTP_Authorization' : self.access_token }
+        response = client.get('/apply?notification=answkduf', content_type='application/json', **headers)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(),
+                {
+                    'MESSAGE': 'VALUE_ERROR'
+                }
+            )
+
+    def test_apply_success(self):
+        client = Client()
+        headers = { 'HTTP_Authorization' : self.access_token }
+        notification = { 'notification_id' : 1 }
+        response = client.post('/apply', json.dumps(notification), content_type='application/json', **headers)
+
+        self.assertEqual(response.status_code, 200)
+
+    def test_applylist_check_success(self):
+        client = Client()
+        headers = { 'HTTP_Authorization' : self.access_token }
+        response = client.get('/applylist', content_type='application/json', **headers)
+
+        self.assertEqual(response.status_code, 200)
+

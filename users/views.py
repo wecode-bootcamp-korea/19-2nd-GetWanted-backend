@@ -6,8 +6,10 @@ from django.http      import JsonResponse
 from django.views     import View
 from django.db.models import Q
 
-from users.models      import User, Position
+from users.models      import User, Position, ApplyList
 from users.validations import email_validation, phone_validation, password_validation
+from users.utils       import login_required
+from companies.models  import Notification
 
 from my_settings import SECRET_KEY, algorithm
 
@@ -84,3 +86,53 @@ class SignInView(View):
 
         except KeyError:
             return JsonResponse({'MESSAGE': "KEY_ERROR"}, status=400)
+
+class ApplyView(View):
+    @login_required
+    def get(self, request):
+        try:
+            user            = request.user
+            notification_id = request.GET['notification']
+
+            if not Notification.objects.filter(id=notification_id).exists():
+                return JsonResponse({'MESSAGE':'INVALID_NOTIFICATION_ID'}, status=401)
+
+            if not ApplyList.objects.filter(user_id = user.id, notification_id = notification_id).exists():
+                return JsonResponse({'MESSAGE': 'SUCCESS'}, status=200)
+
+            return JsonResponse({'MESSAGE': 'ALREADY_APPLY'}, status=400)
+        
+        except KeyError:
+            return JsonResponse({'MESSAGE': "KEY_ERROR"}, status=400)
+
+        except ValueError:
+            return JsonResponse({'MESSAGE': "VALUE_ERROR"}, status=400)
+
+    @login_required
+    def post(self, request):
+        data = json.loads(request.body)
+
+        user            = request.user
+        notification_id = data['notification_id']
+
+        ApplyList.objects.create(user_id = user.id, notification_id = notification_id)
+
+        return JsonResponse({'MESSAGE': 'SUCCESS'}, status=200)
+
+class ApplylistView(View):
+    @login_required
+    def get(self, request):
+        user = request.user
+        
+        applylists = ApplyList.objects.filter(user_id = user.id)
+
+        user_applylists = [
+                {
+                    'img'  : applylist.notification.image_set.all().first().image_url,
+                    'company_name'   : applylist.notification.company.name,
+                    'apply_position' : '웹 개발자',
+                    'apply_date'     : applylist.created_at.strftime('%Y-%m'),
+                    'apply_status'   : '접수'
+                    } for applylist in applylists]
+
+        return JsonResponse({'MESSAGE': 'SUCCESS', 'APPLYLIST' : user_applylists }, status=200)
