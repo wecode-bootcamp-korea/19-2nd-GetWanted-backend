@@ -4,17 +4,16 @@ from django.test  import TestCase, Client
 
 from users.models import User, Position
 from .models      import Resume,Career
-
 from my_settings  import SECRET_KEY,algorithm
 
 # Create your tests here.
 
 class ResumeTest(TestCase):
-
-    def setUp(self):
+    @classmethod
+    def setUpTestData(cls):
         Position.objects.create(name='frontend')
         Position.objects.create(name='backend')
-        user = User.objects.create(
+        cls.user = User.objects.create(
             id       = 1,
             email    = 'qwer@asdf.com',
             password = 'asdfqwer',
@@ -50,13 +49,7 @@ class ResumeTest(TestCase):
             description   = 'description',
             resume        = Resume.objects.get(id=1)
         )
-        self.access_token = jwt.encode({'user_id': user.id}, SECRET_KEY, algorithm=algorithm)
-
-    def tearDown(self):
-        User.objects.all().delete()
-        Position.objects.all().delete()
-        Career.objects.all().delete()
-        Resume.objects.all().delete()
+        cls.access_token = jwt.encode({'user_id': cls.user.id}, SECRET_KEY, algorithm=algorithm)
 
     def test_resume_create_success(self):
         client  = Client()
@@ -241,3 +234,27 @@ class ResumeTest(TestCase):
         response = client.get('/resumes/"ㅇㅇㅇ"',**headers)
 
         self.assertEqual(response.status_code, 404)
+
+    def test_resume_list_get_success(self):
+        client = Client()
+        headers = {'HTTP_Authorization': self.access_token}
+
+        response = client.get('/resumes/lists', **headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(),{
+            'MESSAGE' :'SUCCESS',
+            'RESULTS' : {
+                'fileresume_list' : [],
+                'resume_list'     : [
+                    {
+                        'date'   : '2021-05-04',
+                        'id'     : 1,
+                        'name'   : 'title',
+                        'status' : True
+                    },
+                    {
+                        'date'   : '2021-05-04',
+                        'id'     : 2,
+                        'name'   : '제목',
+                        'status' : True
+                    }]}})

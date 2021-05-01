@@ -1,12 +1,23 @@
 import json
+import unicodedata
+
+from urllib.parse import unquote
+from datetime     import datetime
 
 from django.db.models import Count
 from django.views     import View
-from django.http      import JsonResponse,FileResponse
+from django.http      import JsonResponse
 
 from users.utils      import login_required
 from .utils           import user_infomation
 from .models          import Resume,FileResume,Career
+
+from django.views import View
+from django.http  import JsonResponse
+
+from users.utils  import login_required
+from users.models import User
+from .models      import Resume,FileResume,Career
 
 # Create your views here.
 
@@ -90,4 +101,23 @@ class ResumeView(View):
                 'details'     : career.description
             }for career in resume.career_set.all()]
         }
+        return JsonResponse({'MESSAGE':'SUCCESS','RESULTS':results},status=200)
+
+class ResumeListView(View):
+    @login_required
+    def get(self,request):
+        user    = request.user
+        results = {
+            'fileresume_list' : [{
+                'id'   : file.id,
+                'url'  : file.file_url,
+                'name' : unquote(unicodedata.normalize('NFKD',file.file_url.split('/')[-1]).encode('utf-8')),
+                'date' : file.updated_at.strftime('%Y-%m-%d')
+            }for file in user.fileresume_set.all()],
+            'resume_list' : [{
+            'id'     : resume.id,
+            'name'   : resume.title,
+            'date'   : resume.updated_at.strftime('%Y-%m-%d'),
+            'status' : resume.status
+        }for resume in user.resume_set.all()]}
         return JsonResponse({'MESSAGE':'SUCCESS','RESULTS':results},status=200)
