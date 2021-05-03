@@ -16,8 +16,8 @@ def login_required(func):
 
         except KeyError:
             return JsonResponse({"MESSAGE": "INVALID_LOGIN"}, status=401)
-        
+
         except jwt.DecodeError:
             return JsonResponse({"MESSAGE": "INVALID_TOKEN"}, status=401)
-    
+
     return decorator
