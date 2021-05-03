@@ -38,5 +38,6 @@ class Like(models.Model):
     notification = models.ForeignKey('Notification',on_delete=models.CASCADE)
     user         = models.ForeignKey('users.User',on_delete=models.CASCADE)
     is_liked     = models.BooleanField()
+
     class Meta:
         db_table = 'likes'

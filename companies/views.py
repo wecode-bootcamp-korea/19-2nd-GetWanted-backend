@@ -5,7 +5,8 @@ from django.http           import JsonResponse
 from django.core.paginator import Paginator
 from django.db.models      import Q
 
-from .models               import Notification, Tag
+from .models               import Notification, Tag, Like
+from users.utils           import login_required
 
 class NotificationView(View):
     def get(self,request):
@@ -13,7 +14,7 @@ class NotificationView(View):
             tag              = request.GET.get('tag',None)
             page             = request.GET.get('page',1)
             search           = request.GET.get('search', None)
-            notification_zip = Notification.objects.select_related('company').prefetch_related('image_set').all()
+            notification_zip = Notification.objects.select_related('company').prefetch_related('image_set','like_set').all()
 
             if search:
                 notification_zip = Notification.objects.select_related('company').prefetch_related('image_set').filter(Q(title__icontains=search) | Q(company__name__icontains=search))
@@ -27,18 +28,18 @@ class NotificationView(View):
             notifications = paginator.get_page(page)
 
             notification_list = [{
-                'title'   : notification.title,
-                'image'   : notification.image_set.first().image_url,
-                'id'      : notification.id,
-                'area'    : notification.company.address.split()[0],
-                'company' : notification.company.name
+                'title'      : notification.title,
+                'image'      : notification.image_set.first().image_url,
+                'id'         : notification.id,
+                'area'       : notification.company.address.split()[0],
+                'company'    : notification.company.name,
+                'like_count' : notification.like_set.filter(is_liked=1).count()
                 } for notification in notifications]
 
             return JsonResponse({'notification_list' : notification_list, 'total' : len(notification_zip)}, status = 200)
 
         except ValueError:
             return JsonResponse({'MESSAGE': 'VALUE_ERROR'},status = 400)
-
 
 class TagView(View):
     def get(self,request):
@@ -74,3 +75,33 @@ class NotificationDetailView(View):
 
         except Notification.DoesNotExist:
             return JsonResponse({'MESSAGE' : 'NOTIFICATION_DOES_NOT_EXIST'},status=404)
+
+class NotificationLikeView(View):
+    @login_required
+    def post(self,request):
+        try:
+            data             = json.loads(request.body)
+            notification     = Notification.objects.get(id=data['notification'])
+            user             = request.user
+
+            if Like.objects.select_related('notification','user').filter(user=user, notification=notification, is_liked=1).exists():
+                Like.objects.select_related('notification','user').filter(user=user, notification=notification, is_liked=1).update(is_liked=0)
+
+                return JsonResponse({'MESSAGE': 'UNLIKED', 'LIKE_COUNT': notification.like_set.filter(is_liked=1).count()}, status=201)
+            
+            if Like.objects.select_related('notification','user').filter(user=user, notification=notification, is_liked=0).exists():
+                Like.objects.select_related('notification','user').filter(user=user, notification=notification, is_liked=0).update(is_liked=1)
+
+                return JsonResponse({'MESSAGE': 'LIKED','LIKE_COUNT': notification.like_set.filter(is_liked=1).count()}, status=201)
+
+            else:
+                Like.objects.create(user=user, notification=notification, is_liked=1)
+
+                return JsonResponse({'MESSAGE': 'LIKED','LIKE_COUNT': notification.like_set.filter(is_liked=1).count()}, status=201)
+
+        except Notification.DoesNotExist:
+            return JsonResponse({"MESSAGE": "NOTIFICATION_DOES_NOT_EXIST"}, status=404)
+        except KeyError:
+            return JsonResponse({'MESSAGE': "KEY_ERROR"}, status = 400)
+        except ValueError:
+            return JsonResponse({'MESSAGE': "VALUE_ERROR"}, status = 400)
