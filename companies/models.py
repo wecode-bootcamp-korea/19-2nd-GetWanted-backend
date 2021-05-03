@@ -5,6 +5,7 @@ class Notification(models.Model):
     description = models.TextField()
     company     = models.ForeignKey('Company',on_delete=models.CASCADE)
     tag         = models.ManyToManyField('Tag',through='NotificationTag')
+    user        = models.ManyToManyField('users.User', through='Like', related_name='userlike')
     class Meta:
         db_table = 'notifications'
 
@@ -32,3 +33,9 @@ class NotificationTag(models.Model):
     tag          = models.ForeignKey('Tag', on_delete=models.CASCADE)
     class Meta:
         db_table = 'notification_tags'
+
+class Like(models.Model):
+    notification = models.ForeignKey('Notification',on_delete=models.CASCADE)
+    user         = models.ForeignKey('users.User',on_delete=models.CASCADE)
+    class Meta:
+        db_table = 'likes'

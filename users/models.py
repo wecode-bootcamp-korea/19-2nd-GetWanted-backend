@@ -7,7 +7,7 @@ class User(models.Model):
     is_social    = models.BooleanField(default=0)
     email        = models.EmailField()
     position     = models.ForeignKey('Position',on_delete=models.PROTECT)
-    notification = models.ManyToManyField('companies.Notification', through='ApplyList')
+    notification = models.ManyToManyField('companies.Notification', through='ApplyList',related_name='userapply')
     class Meta:
         db_table = 'users'
 
