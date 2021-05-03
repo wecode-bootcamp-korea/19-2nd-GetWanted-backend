@@ -19,7 +19,7 @@ from users.views import ApplyView, ApplylistView
 urlpatterns = [
     path('users', include('users.urls')),
     path('notifications',include('companies.urls')),
-    path('resumes', include('resumes.urls'))
+    path('resumes', include('resumes.urls')),
     path('applylist', ApplylistView.as_view()),
     path('apply', ApplyView.as_view())
     ]
