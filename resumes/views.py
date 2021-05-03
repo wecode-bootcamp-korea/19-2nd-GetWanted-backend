@@ -1,11 +1,12 @@
 import json
 
-from django.views import View
-from django.http  import JsonResponse,FileResponse
+from django.db.models import Count
+from django.views     import View
+from django.http      import JsonResponse,FileResponse
 
-from users.utils  import login_required
-
-from .models      import Resume,FileResume,Career
+from users.utils      import login_required
+from .utils           import user_infomation
+from .models          import Resume,FileResume,Career
 
 # Create your views here.
 
@@ -57,3 +58,36 @@ class ResumeView(View):
             return JsonResponse({'MESSAGE':'KEY_ERROR'},status=400)
         except ValueError:
             return JsonResponse({'MESSAGE':'VALUE_ERROR'},status=400)
+
+    @login_required
+    def get(self,request,resume_id=None):
+        user = request.user
+
+        if not resume_id:
+            results = user_infomation(user)
+            return JsonResponse({'MESSAGE':'SUCCESS', 'RESULTS':results}, status=200)
+
+        if not Resume.objects.filter(id=resume_id).exists():
+            return JsonResponse({'MESSAGE':'NOT_FOUND_RESUME'},status=404)
+
+        resume  = Resume.objects.get(id=resume_id)
+        results = {
+            'id'       : resume.id,
+            'title'    : resume.title,
+            'intro'    : resume.introduction,
+            'fullName' : resume.name,
+            'phone'    : resume.phone_number,
+            'email'    : resume.email,
+            'workInfo' : [{
+                'id'          : career.id,
+                'isWorking'   : career.is_working,
+                'startYear'   : career.start_working.split('-')[0],
+                'startMonth'  : career.start_working.split('-')[-1],
+                'endYear'     : career.end_working.split('-')[0],
+                'endMonth'    : career.end_working.split('-')[-1],
+                'companyName' : career.company_name,
+                'position'    : career.department,
+                'details'     : career.description
+            }for career in resume.career_set.all()]
+        }
+        return JsonResponse({'MESSAGE':'SUCCESS','RESULTS':results},status=200)
