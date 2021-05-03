@@ -4,6 +4,7 @@ import bcrypt
 
 from django.test      import TestCase
 from django.test      import Client
+from unittest.mock    import patch, MagicMock
 
 from companies.models import Company, Notification, Image
 from users.models     import User, Position, ApplyList
@@ -11,9 +12,10 @@ from users.models     import User, Position, ApplyList
 from my_settings      import SECRET_KEY, algorithm
 
 
-class SignUoTest(TestCase):
 
-    def setUp(self):
+class SignUoTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
         Position.objects.create(id=1, name='백엔드')
         Position.objects.create(id=2, name='프론트엔드')
         Position.objects.create(id=3, name='풀스택')
@@ -127,8 +129,8 @@ class SignUoTest(TestCase):
             )
 
 class EmailCheckTest(TestCase):
-
-    def setUp(self):
+    @classmethod
+    def setUpTestData(cls):
         Position.objects.create(id=1, name='백엔드')
         User.objects.create(
                 name        = '정재유', 
@@ -187,8 +189,8 @@ class EmailCheckTest(TestCase):
             )
 
 class SignInCheckTest(TestCase):
-
-    def setUp(self):
+    @classmethod
+    def setUpTestData(cls):
         client = Client()
         Position.objects.create(
                 id   = 1, 
@@ -248,8 +250,8 @@ class SignInCheckTest(TestCase):
             )
 
 class ApplyviewTest(TestCase):
-
-    def setUp(self):
+    @classmethod
+    def setUpTestData(cls):
         client = Client()
         Position.objects.create(id = 1, name = '백엔드')
         User.objects.create(
@@ -287,7 +289,7 @@ class ApplyviewTest(TestCase):
 
         ApplyList.objects.create(user_id = 1, notification_id = 5)
 
-        self.access_token = jwt.encode({'user_id': 1}, SECRET_KEY, algorithm = algorithm)
+        cls.access_token = jwt.encode({'user_id': 1}, SECRET_KEY, algorithm = algorithm)
 
 
     def tearDown(self):
@@ -391,3 +393,131 @@ class ApplyviewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
+class KakaoSigninTest(TestCase):
+    def tearDown(self):
+        User.objects.all().delete()
+
+    @patch("users.views.requests")
+    def kakao_signin_test_success(self, mock_requests):
+        client = Client()
+
+        class Mocked_data:
+            def json(self):
+                return { "properties"    : { "nickname" : "정재유" },
+                         "kakao_account" : { "email"    : "wjdwodb@naver.com" }}
+                
+        mock_requests.get = MagicMock(return_value = Mocked_data())
+ 
+        access_token = {'Authorization' : 'wjdwodb'}
+
+        response = client.post('/user/kakao', json.dumps(access_token), content_type='application/json')
+        
+        self.assertEqual(response.status_code, 201)
+
+    @patch("users.views.requests")
+    def kakao_signin_test_fail_invalid_email(self, mock_requests):
+        client = Client()
+
+        class Mocked_data:
+            def json(self):
+                return { "properties"    : { "nickname" : "정재유" },
+                         "kakao_account" : { "email"    : "wjdwodbnaver.com" }}
+
+        mock_requests.get = MagicMock(return_value = Mocked_data())
+
+        access_token = {'Authorization' : 'wjdwodb'}
+
+        response = client.post('/user/kakao', json.dumps(access_token), content_type='application/json')
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json(),
+                {
+                    'MESSAGE' : 'INVALID_EMAIL'
+                }
+            )
+
+    @patch("users.views.requests")
+    def kakao_signin_test_fail_invalid_token(self, mock_requests):
+        client = Client()
+
+        class Mocked_data:
+            def json(self):
+                return { "ERROR" : "error code 001" }
+
+        mock_requests.get = MagicMock(return_value = Mocked_data())
+
+        access_token = {'Authorization' : 'wjdwodb'}
+
+        response = client.post('/user/kakao', json.dumps(access_token), content_type='application/json')
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json(),
+                {
+                    'MESSAGE' : 'INVALID_TOKEN'
+                }
+            )
+
+class GoogleSigninTest(TestCase):
+    def tearDown(self):
+        User.objects.all().delete()
+
+    @patch("users.views.requests")
+    def google_signin_test_success(self, mock_requests):
+        client = Client()
+
+        class Mocked_data:
+            def json(self):
+                return { "name"  : "정재유",
+                         "email" : "wjdwodb@naver.com" }
+
+        mock_requests.get = MagicMock(return_value = Mocked_data())
+
+        access_token = {'Authorization' : 'wjdwodb'}
+
+        response = client.post('/user/kakao', json.dumps(access_token), content_type='application/json')
+
+        self.assertEqual(response.status_code, 201)
+
+    @patch("users.views.requests")
+    def google_signin_test_fail_invalid_email(self, mock_requests):
+        client = Client()
+
+        class Mocked_data:
+            def json(self):
+                return { "name"  : "정재유",
+                         "email" : "wjdwodbnaver.com" }
+
+        mock_requests.get = MagicMock(return_value = Mocked_data())
+
+        access_token = {'Authorization' : 'wjdwodb'}
+
+        response = client.post('/user/kakao', json.dumps(access_token), content_type='application/json')
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json(),
+                {
+                    'MESSAGE' : 'INVALID_EMAIL'
+                }
+            )
+
+    @patch("users.views.requests")
+    def google_signin_test_fail_invalid_token(self, mock_requests):
+        client = Client()
+
+        class Mocked_data:
+            def json(self):
+                return { "name"  : "정재유",
+                         "email" : "wjdwodb@naver.com" }
+
+        mock_requests.get = MagicMock(return_value = Mocked_data())
+
+        access_token = {'ERROR' : 'error code 001'}
+
+        response = client.post('/user/kakao', json.dumps(access_token), content_type='application/json')
+
+        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.json(),
+                {
+                    'MESSAGE' : 'INVALID_EMAIL'
+                }
+            )

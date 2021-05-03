@@ -1,4 +1,5 @@
 import json
+import requests
 import bcrypt
 import jwt
 
@@ -8,7 +9,7 @@ from django.db.models import Q
 
 from users.models      import User, Position, ApplyList
 from users.validations import email_validation, phone_validation, password_validation
-from users.utils       import login_required
+from users.utils       import login_required, social_signin
 from companies.models  import Notification
 
 from my_settings import SECRET_KEY, algorithm
@@ -61,6 +62,9 @@ class EmailCheckView(View):
 
             if not User.objects.filter(email=email).exists():
                 return JsonResponse({'MESSAGE': 'ACCOUNT_NOT_EXIST'}, status=401)
+
+            if User.objects.get(email=email).is_social:
+                return JsonResponse({'MESSAGE': 'USE_SOCIAL_LOGIN'}, status=400)
 
             return JsonResponse({'MESSAGE': 'SUCCESS'}, status=200)
 
@@ -136,3 +140,72 @@ class ApplylistView(View):
                     } for applylist in applylists]
 
         return JsonResponse({'MESSAGE': 'SUCCESS', 'APPLYLIST' : user_applylists }, status=200)
+
+class KakaoSignin(View):
+    def post(self,request):
+        try:
+            data = json.loads(request.body)
+        
+            access_token       = data['Authorization']
+            user_info_url      = 'https://kapi.kakao.com/v2/user/me'
+            user_info_headers  = {'Authorization': 'Bearer ' + access_token}
+
+            user_info_data = requests.get(user_info_url, headers = user_info_headers).json()
+
+            user_name  = user_info_data['properties']['nickname']
+            user_email = user_info_data['kakao_account']['email']
+
+            social_login = social_signin(user_name, user_email)
+        
+            if social_login == 'INVALID_EMAIL':
+                return JsonResponse({"MESSAGE": "INVALID_EMAIL"}, status=401)
+        
+            return JsonResponse({'MESSAGE': 'SUCCESS', 'TOKEN' : social_login }, status=201)        
+        except:
+            return JsonResponse({'MESSAGE': 'INVALID_TOKEN'}, status=401)
+
+class GoogleSignin(View):
+    def post(self,request):
+        try:
+            data = json.loads(request.body)
+        
+            id_token      = data['Authorization']
+            user_info_url = 'https://oauth2.googleapis.com/tokeninfo'
+
+            user_info_data = requests.get(user_info_url+'?id_token={}'.format(id_token)).json()
+
+            user_name  = user_info_data['name']
+            user_email = user_info_data['email']
+
+            social_login = social_signin(user_name, user_email)
+
+            if social_login == 'INVALID_EMAIL':
+                return JsonResponse({"MESSAGE": "INVALID_EMAIL"}, status=401)
+
+            return JsonResponse({'MESSAGE': 'SUCCESS', 'TOKEN' : social_login }, status=201)
+        except:
+            return JsonResponse({'MESSAGE': 'INVALID_TOKEN'}, status=401)
+
+class NaverSignin(View):
+    def post(self,request):
+        try:
+            data = json.loads(request.body)
+        
+            access_token  = data['Authorization']
+            user_info_url = 'https://openapi.naver.com/v1/nid/me'
+            headers       = { 'Authorization' : 'Bearer ' + access_token }
+
+            user_info_data = requests.get(user_info_url, headers = headers).json()
+
+            user_name    = user_info_data['response']['name']
+            user_email   = user_info_data['response']['email']
+
+            social_login = social_signin(user_name, user_email)
+
+            if social_login == 'INVALID_EMAIL':
+                return JsonResponse({"MESSAGE": "INVALID_EMAIL"}, status=401)
+
+            return JsonResponse({'MESSAGE': 'SUCCESS', 'TOKEN' : social_login }, status=201)
+
+        except:
+            return JsonResponse({'MESSAGE': 'INVALID_TOKEN'}, status=401)
