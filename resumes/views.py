@@ -1,19 +1,18 @@
-import json
-import unicodedata
+import json, unicodedata, boto3
 
-from urllib.parse import unquote
-from datetime     import datetime
+from urllib.parse import quote,unquote
 
-from django.db.models import Count
-from django.views     import View
-from django.http      import JsonResponse
+from django.views import View
+from django.http  import JsonResponse
+from django.db    import transaction
 
 from users.utils      import login_required
 from .utils           import user_infomation
 from .models          import Resume,FileResume,Career
+from my_settings      import my_bucket, my_aws_access_key_id, my_aws_secret_access_key, my_s3_client
+from .pdf_drawer       import draw
 
 # Create your views here.
-
 class ResumeView(View):
     @login_required
     def post(self,request):
@@ -125,3 +124,71 @@ class ResumeListView(View):
             'status' : resume.status
         }for resume in user.resume_set.all()]}
         return JsonResponse({'MESSAGE':'SUCCESS','RESULTS':results},status=200)
+
+class FileResumeView(View):
+    s3_client = my_s3_client
+
+    @login_required
+    def get(self,request,resume_id=None):
+        try:
+            if not Resume.objects.filter(id=resume_id).exists():
+                return JsonResponse({'MESSAGE':'RESUME_NOT_FOUND'},status=404)
+
+            aws_session = boto3.Session(my_aws_access_key_id, my_aws_secret_access_key)
+            s3          = aws_session.resource('s3')
+
+            resume = Resume.objects.get(id=resume_id)
+            buffer = draw(resume_id)
+            s3.Bucket(my_bucket).put_object(Key=f'{str(resume.updated_at)[:10]}_{resume.title.replace(" ","_")}.pdf', Body=buffer)
+            file_name = quote(unicodedata.normalize('NFKD', f'{str(resume.updated_at)[:10]}_{resume.title.replace(" ","_")}').encode('utf-8'))
+
+            file_url = f'https://{my_bucket}.s3.ap-northeast-2.amazonaws.com/{file_name}.pdf'
+
+            return JsonResponse({'MESSAGE':'SUCCESS','FILE':file_url},status=201)
+        except ValueError:
+            return JsonResponse({'MESSAGE':'VALUE_ERROR'},status=400)
+
+    @login_required
+    @transaction.atomic()
+    def post(self,request):
+        try:
+            file = request.FILES['File']
+            if file.content_type != 'application/pdf':
+                return JsonResponse({'MESSAGE':'DOESNT_UPLOAD_IF_NOT_PDF'},status=400)
+
+            self.s3_client.upload_fileobj(
+                file,
+                my_bucket,
+                file.name.replace(" ","_"),
+                ExtraArgs={
+                    "ContentType": file.content_type
+                }
+            )
+            file_name = quote(unicodedata.normalize('NFKD', f'{file.name.replace(" ", "_")}').encode('utf-8'))
+            file_url  = f'https://{my_bucket}.s3.ap-northeast-2.amazonaws.com/{file_name}'
+
+            FileResume.objects.create(user=request.user,file_url=file_url)
+
+            return JsonResponse({'MESSAGE':'SUCCESS'},status= 200)
+        except KeyError:
+            JsonResponse({'MESSAGE':'KEY_ERROR'},status=400)
+        except ValueError:
+            JsonResponse({'MESSAGE': 'VALUE_ERROR'}, status=400)
+
+    @login_required
+    def delete(self,request,resume_id=None):
+        try:
+            if not FileResume.objects.filter(id=resume_id).exists():
+                return JsonResponse({'MESSAGE':'RESUME_NOT_FOUND'},status=404)
+
+            with transaction.atomic():
+                file      = FileResume.objects.get(id=resume_id)
+                file_name = unquote(unicodedata.normalize('NFKD', file.file_url.split('/')[-1]).encode('utf-8'))
+
+                self.s3_client.delete_object(Bucket=my_bucket, Key=file_name)
+
+                file.delete()
+
+            return JsonResponse({'MESSAGE':'SUCCESS'}, status=200)
+        except ValueError:
+            return JsonResponse({'MESSAGE':'VALUE_ERROR'},status=400)

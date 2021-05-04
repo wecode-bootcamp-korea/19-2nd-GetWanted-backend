@@ -1,5 +1,7 @@
 import json, jwt
 
+from moto         import mock_s3
+
 from django.test  import TestCase, Client
 
 from users.models import User, Position
@@ -247,13 +249,13 @@ class ResumeTest(TestCase):
                 'fileresume_list' : [],
                 'resume_list'     : [
                     {
-                        'date'   : '2021-05-04',
+                        'date'   : '2021-05-05',
                         'id'     : 1,
                         'name'   : 'title',
                         'status' : True
                     },
                     {
-                        'date'   : '2021-05-04',
+                        'date'   : '2021-05-05',
                         'id'     : 2,
                         'name'   : '제목',
                         'status' : True
