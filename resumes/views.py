@@ -12,13 +12,6 @@ from users.utils      import login_required
 from .utils           import user_infomation
 from .models          import Resume,FileResume,Career
 
-from django.views import View
-from django.http  import JsonResponse
-
-from users.utils  import login_required
-from users.models import User
-from .models      import Resume,FileResume,Career
-
 # Create your views here.
 
 class ResumeView(View):
@@ -121,3 +114,14 @@ class ResumeListView(View):
             'status' : resume.status
         }for resume in user.resume_set.all()]}
         return JsonResponse({'MESSAGE':'SUCCESS','RESULTS':results},status=200)
+
+    @login_required
+    def delete(self,request,resume_id=None):
+        try:
+            if not Resume.objects.filter(id=resume_id).exists():
+                return JsonResponse({"MESSAGE":"RESUME_NOT_FOUND"},status=404)
+
+            Resume.objects.get(id=resume_id).delete()
+            return JsonResponse({'MESSAGE':'SUCCESS'}, status=200)
+        except ValueError:
+            return JsonResponse({'MESSAGE':'VALUE_ERROR'}, status=400)

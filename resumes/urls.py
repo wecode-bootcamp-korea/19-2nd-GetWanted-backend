@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import ResumeView,ResumeListView
+from .views      import ResumeView,ResumeListView
 
 urlpatterns = [
     path('/<int:resume_id>', ResumeView.as_view()),

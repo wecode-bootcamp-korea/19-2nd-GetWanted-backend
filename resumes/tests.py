@@ -258,3 +258,19 @@ class ResumeTest(TestCase):
                         'name'   : '제목',
                         'status' : True
                     }]}})
+
+    def test_resume_delete_success(self):
+        client = Client()
+        headers = {'HTTP_Authorization': self.access_token}
+        response = client.delete('/resumes/1', **headers)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(),{'MESSAGE':'SUCCESS'})
+
+    def test_resume_delete_not_found_resume(self):
+        client = Client()
+        headers = {'HTTP_Authorization': self.access_token}
+        response = client.delete('/resumes/99', **headers)
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.json(),{'MESSAGE':'RESUME_NOT_FOUND'})
