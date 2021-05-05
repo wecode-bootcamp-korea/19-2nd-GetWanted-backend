@@ -96,6 +96,17 @@ class ResumeView(View):
         }
         return JsonResponse({'MESSAGE':'SUCCESS','RESULTS':results},status=200)
 
+    @login_required
+    def delete(self,request,resume_id=None):
+        try:
+            if not Resume.objects.filter(id=resume_id).exists():
+                return JsonResponse({"MESSAGE":"RESUME_NOT_FOUND"},status=404)
+
+            Resume.objects.get(id=resume_id).delete()
+            return JsonResponse({'MESSAGE':'SUCCESS'}, status=200)
+        except ValueError:
+            return JsonResponse({'MESSAGE':'VALUE_ERROR'}, status=400)
+
 class ResumeListView(View):
     @login_required
     def get(self,request):
@@ -114,14 +125,3 @@ class ResumeListView(View):
             'status' : resume.status
         }for resume in user.resume_set.all()]}
         return JsonResponse({'MESSAGE':'SUCCESS','RESULTS':results},status=200)
-
-    @login_required
-    def delete(self,request,resume_id=None):
-        try:
-            if not Resume.objects.filter(id=resume_id).exists():
-                return JsonResponse({"MESSAGE":"RESUME_NOT_FOUND"},status=404)
-
-            Resume.objects.get(id=resume_id).delete()
-            return JsonResponse({'MESSAGE':'SUCCESS'}, status=200)
-        except ValueError:
-            return JsonResponse({'MESSAGE':'VALUE_ERROR'}, status=400)
