@@ -14,8 +14,9 @@ from users.models      import User, Position, ApplyList
 from users.validations import email_validation, phone_validation, password_validation
 from users.utils       import login_required, social_signin
 from companies.models  import Notification
+from resumes.utils     import user_infomation
 
-from my_settings import SECRET_KEY, algorithm
+from my_settings       import SECRET_KEY, algorithm
 
 class SignUpView(View):
     def post(self, request):
@@ -105,7 +106,7 @@ class ApplyView(View):
                 return JsonResponse({'MESSAGE':'INVALID_NOTIFICATION_ID'}, status=401)
 
             if not ApplyList.objects.filter(user_id = user.id, notification_id = notification_id).exists():
-                return JsonResponse({'MESSAGE': 'SUCCESS'}, status=200)
+                return JsonResponse({'MESSAGE': 'SUCCESS','USER_INFORMATION' : user_infomation(user)}, status=200)
 
             return JsonResponse({'MESSAGE': 'ALREADY_APPLY'}, status=400)
         
@@ -117,8 +118,7 @@ class ApplyView(View):
 
     @login_required
     def post(self, request):
-        data = json.loads(request.body)
-
+        data            = json.loads(request.body)
         user            = request.user
         notification_id = data['notification_id']
 
