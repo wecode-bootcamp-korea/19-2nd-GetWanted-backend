@@ -1,3 +1,5 @@
+import string
+import random
 import json
 import requests
 import bcrypt
@@ -6,6 +8,7 @@ import jwt
 from django.http      import JsonResponse
 from django.views     import View
 from django.db.models import Q
+from django.core.mail import EmailMessage
 
 from users.models      import User, Position, ApplyList
 from users.validations import email_validation, phone_validation, password_validation
@@ -209,3 +212,30 @@ class NaverSignin(View):
 
         except:
             return JsonResponse({'MESSAGE': 'INVALID_TOKEN'}, status=401)
+
+class ResetPassword(View):
+    def patch(self, request):
+        try:
+            data  = json.loads(request.body)
+            email = data['email']
+        
+            password = ''.join(random.choice(string.digits + string.ascii_lowercase) for _ in range(9))
+
+            hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        
+            email_message = EmailMessage(
+                'GetWanted 비밀번호 변경', 
+                '귀하의 비밀번호는 아래 문자로 변경되었습니다.\n\n{}\n\n이용해 주셔서 감사합니다.'.format(password), 
+                to = [email])
+        
+            email_message.send()
+        
+            user = User.objects.get(email=email)
+        
+            user.password = hashed_password
+            user.save()
+        
+            return JsonResponse({'MESSAGE': 'SUCCESS'}, status=200)
+
+        except KeyError:
+            return JsonResponse({'MESSAGE': "KEY_ERROR"}, status=400)

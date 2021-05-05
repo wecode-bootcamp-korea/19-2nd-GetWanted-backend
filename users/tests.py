@@ -249,6 +249,27 @@ class SignInCheckTest(TestCase):
                 }
             )
 
+    def test_change_password_success(self):
+        client = Client()
+
+        data = {'email' : 'fishingman99@naver.com'}
+
+        response = client.patch('/users/reset', json.dumps(data), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        
+    def test_change_password_fail(self):
+        client = Client()
+
+        data = {'account' : 'fishingman99@naver.com'}
+
+        response = client.patch('/users/reset', json.dumps(data), content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(),
+                {
+                    'MESSAGE' : 'KEY_ERROR'
+                }
+            )
+
 class ApplyviewTest(TestCase):
     @classmethod
     def setUpTestData(cls):

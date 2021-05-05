@@ -147,3 +147,12 @@ CORS_ALLOW_HEADERS = (
     'x-csrftoken',
     'x-requested-with',
 )
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_USE_TLS = True
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = my_settings.google_email
+EMAIL_HOST_PASSWORD = my_settings.google_password
+SERVER_EMAIL = my_settings.google_email
+DEFAULT_FROM_MAIL = 'GetWanted'
