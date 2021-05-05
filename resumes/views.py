@@ -1,18 +1,19 @@
 import json, unicodedata, boto3
 
-from urllib.parse import quote,unquote
+from urllib.parse     import quote,unquote
+from datetime         import datetime
 
-from django.views import View
-from django.http  import JsonResponse
-from django.db    import transaction
+
+from django.views     import View
+from django.http      import JsonResponse
+from django.db        import transaction
 
 from users.utils      import login_required
 from .utils           import user_infomation
 from .models          import Resume,FileResume,Career
 from my_settings      import my_bucket, my_aws_access_key_id, my_aws_secret_access_key, my_s3_client
-from .pdf_drawer       import draw
+from .pdf_drawer      import draw
 
-# Create your views here.
 class ResumeView(View):
     @login_required
     def post(self,request):
@@ -96,7 +97,7 @@ class ResumeView(View):
         return JsonResponse({'MESSAGE':'SUCCESS','RESULTS':results},status=200)
 
     @login_required
-    def delete(self,request,resume_id=None):
+    def delete(self,request,resume_id):
         try:
             if not Resume.objects.filter(id=resume_id).exists():
                 return JsonResponse({"MESSAGE":"RESUME_NOT_FOUND"},status=404)
@@ -123,6 +124,7 @@ class ResumeListView(View):
             'date'   : resume.updated_at.strftime('%Y-%m-%d'),
             'status' : resume.status
         }for resume in user.resume_set.all()]}
+
         return JsonResponse({'MESSAGE':'SUCCESS','RESULTS':results},status=200)
 
 class FileResumeView(View):
@@ -192,3 +194,5 @@ class FileResumeView(View):
             return JsonResponse({'MESSAGE':'SUCCESS'}, status=200)
         except ValueError:
             return JsonResponse({'MESSAGE':'VALUE_ERROR'},status=400)
+
+        return JsonResponse({'MESSAGE':'SUCCESS','RESULTS':results},status=200)
