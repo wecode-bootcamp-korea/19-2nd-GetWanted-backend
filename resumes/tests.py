@@ -1,11 +1,9 @@
 import json, jwt
 
-from moto         import mock_s3
-
 from django.test  import TestCase, Client
 
 from users.models import User, Position
-from .models      import Resume,Career
+from .models      import Resume,Career,FileResume
 from my_settings  import SECRET_KEY,algorithm
 
 # Create your tests here.

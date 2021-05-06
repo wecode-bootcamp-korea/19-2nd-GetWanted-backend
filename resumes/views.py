@@ -1,8 +1,6 @@
-import json, unicodedata, boto3
+import json, boto3
 
 from urllib.parse     import quote,unquote
-from datetime         import datetime
-
 
 from django.views     import View
 from django.http      import JsonResponse
@@ -116,7 +114,7 @@ class ResumeListView(View):
             'fileresume_list' : [{
                 'id'   : file.id,
                 'url'  : file.file_url,
-                'name' : unquote(unicodedata.normalize('NFKD',file.file_url.split('/')[-1]).encode('utf-8')),
+                'name' : unquote(file.file_url.split('/')[-1]),
                 'date' : file.updated_at.strftime('%Y-%m-%d')
             }for file in user.fileresume_set.all()],
             'resume_list' : [{
@@ -142,8 +140,8 @@ class FileResumeView(View):
 
             resume = Resume.objects.get(id=resume_id)
             buffer = draw(resume_id)
-            s3.Bucket(my_bucket).put_object(Key=f'{str(resume.updated_at)[:10]}_{resume.title.replace(" ","_")}.pdf', Body=buffer)
-            file_name = quote(unicodedata.normalize('NFKD', f'{str(resume.updated_at)[:10]}_{resume.title.replace(" ","_")}').encode('utf-8'))
+            s3.Bucket(my_bucket).put_object(Key=f'{resume.updated_at.strftime("%Y-%m-%d")}_{resume.title}.pdf', Body=buffer)
+            file_name = quote(f'{resume.updated_at.strftime("%Y-%m-%d")}_{resume.title}')
 
             file_url = f'https://{my_bucket}.s3.ap-northeast-2.amazonaws.com/{file_name}.pdf'
 
@@ -162,12 +160,12 @@ class FileResumeView(View):
             self.s3_client.upload_fileobj(
                 file,
                 my_bucket,
-                file.name.replace(" ","_"),
+                file.name,
                 ExtraArgs={
                     "ContentType": file.content_type
                 }
             )
-            file_name = quote(unicodedata.normalize('NFKD', f'{file.name.replace(" ", "_")}').encode('utf-8'))
+            file_name = quote(file.name)
             file_url  = f'https://{my_bucket}.s3.ap-northeast-2.amazonaws.com/{file_name}'
 
             FileResume.objects.create(user=request.user,file_url=file_url)
@@ -186,7 +184,7 @@ class FileResumeView(View):
 
             with transaction.atomic():
                 file      = FileResume.objects.get(id=resume_id)
-                file_name = unquote(unicodedata.normalize('NFKD', file.file_url.split('/')[-1]).encode('utf-8'))
+                file_name = unquote(file.file_url.split('/')[-1])
 
                 self.s3_client.delete_object(Bucket=my_bucket, Key=file_name)
 
@@ -195,5 +193,3 @@ class FileResumeView(View):
             return JsonResponse({'MESSAGE':'SUCCESS'}, status=200)
         except ValueError:
             return JsonResponse({'MESSAGE':'VALUE_ERROR'},status=400)
-
-        return JsonResponse({'MESSAGE':'SUCCESS','RESULTS':results},status=200)
