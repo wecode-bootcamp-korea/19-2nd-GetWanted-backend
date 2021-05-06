@@ -394,3 +394,4 @@ my_settings.py
 *.csv
 .idea/*
 db_uploader.py
+Dockerfile
