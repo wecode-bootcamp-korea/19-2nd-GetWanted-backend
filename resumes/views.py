@@ -36,13 +36,14 @@ class ResumeView(View):
             )
             if careers_data:
                 for career_data in careers_data:
-                    is_working    = 0
-                    end_working   = ''
                     start_working = f"{career_data.get('startYear')}-{career_data.get('startMonth')}"
+                    is_working    = 0
+                    end_working = f"{career_data.get('endYear')}-{career_data.get('endMonth')}"
 
-                    if career_data.get('isWorking'):
+                    if (career_data.get('isWorking') == 'on') or \
+                            (career_data.get('endYear') == '' and career_data.get('endMonth') == ''):
                         is_working  = 1
-                        end_working = f"{career_data.get('endYear')}-{career_data.get('endMonth')}"
+                        end_working = ''
 
                     Career.objects.update_or_create(
                         id       = career_data.get('career_id'),
